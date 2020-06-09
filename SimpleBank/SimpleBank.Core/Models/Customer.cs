@@ -1,10 +1,12 @@
 ﻿using System;
+using System.ComponentModel.DataAnnotations;
+using System.Net.Mail;
 using System.Reflection.Metadata.Ecma335;
 using SimpleBank.Core.Models.Abstractions;
 
 namespace SimpleBank.Core.Models
 {
-    public sealed class Customer : IDataObject<int>, IEquatable<Customer>
+    public sealed class Customer : IDomainObject<int>, IEquatable<Customer>
     {
         public Customer(int id)
         {
@@ -15,8 +17,8 @@ namespace SimpleBank.Core.Models
         public string Name { get; set; }
         public string IdentityNumber { get; set; }
         public string PhoneNumber { get; set; }
-        public string Email { get; set; }
-        public byte Type { get; set; }
+        public MailAddress Email { get; set; }
+        public CustomerType Type { get; set; }
 
         public bool Equals(Customer other)
         {

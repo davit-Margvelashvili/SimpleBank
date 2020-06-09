@@ -1,4 +1,5 @@
-﻿using SimpleBank.Core.Data.FileAccess;
+﻿using System.Net.Mail;
+using SimpleBank.Core.Data.DataAccess;
 using SimpleBank.Core.Data.Repositories.Abstractions;
 using SimpleBank.Core.Models;
 
@@ -10,25 +11,26 @@ namespace SimpleBank.Core.Data.Repositories.Implementations
         {
         }
 
+        protected override int GenerateNewId(int lastId) => lastId + 1;
+
         protected override Customer ToObject(string s)
         {
+            // Id,Name,IdentityNumber,PhoneNumber,Email,Type
+
             var data = s.Split(',');
             var idx = 0;
+
             return new Customer(int.Parse(data[idx++]))
             {
                 Name = data[idx++],
                 IdentityNumber = data[idx++],
                 PhoneNumber = data[idx++],
-                Email = data[idx++],
-                Type = byte.Parse(data[idx])
+                Email = new MailAddress(data[idx++]),
+                Type = (CustomerType)byte.Parse(data[idx])
             };
         }
 
-        protected override string ToCsv(Customer obj)
-        {
-            return $"{obj.Name},{obj.IdentityNumber},{obj.PhoneNumber},{obj.Email},{obj.Type}";
-        }
-
-        protected override int GenerateNextId(int lastId) => lastId + 1;
+        protected override string ToCsv(Customer customer) =>
+            $"{customer.Name},{customer.IdentityNumber},{customer.PhoneNumber},{customer.Email},{customer.Type}";
     }
 }

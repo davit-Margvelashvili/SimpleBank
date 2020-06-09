@@ -1,5 +1,6 @@
 ﻿using System;
-using SimpleBank.Core.Data.FileAccess;
+using System.Reflection.Metadata.Ecma335;
+using SimpleBank.Core.Data.DataAccess;
 using SimpleBank.Core.Data.Repositories.Abstractions;
 using SimpleBank.Core.Models;
 
@@ -11,8 +12,11 @@ namespace SimpleBank.Core.Data.Repositories.Implementations
         {
         }
 
+        protected override long GenerateNewId(long lastId) => lastId + 1;
+
         protected override Operation ToObject(string s)
         {
+            // Id,Type,Currency,Amount,AccountId,CustomerId,HappenedAt
             var data = s.Split(',');
             var idx = 0;
             return new Operation(long.Parse(data[idx++]))
@@ -26,9 +30,9 @@ namespace SimpleBank.Core.Data.Repositories.Implementations
             };
         }
 
-        protected override string ToCsv(Operation obj) =>
-            $"{obj.Type},{obj.Currency},{obj.Amount},{obj.AccountId},{obj.CustomerId},{obj.HappenedAt}";
-
-        protected override long GenerateNextId(long lastId) => lastId + 1;
+        protected override string ToCsv(Operation op)
+        {
+            return $"{op.Type},{op.Currency},{op.Amount},{op.AccountId},{op.CustomerId},{op.HappenedAt}";
+        }
     }
 }

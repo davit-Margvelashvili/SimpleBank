@@ -4,7 +4,7 @@ using SimpleBank.Core.Models.Abstractions;
 
 namespace SimpleBank.Core.Models
 {
-    public sealed class Operation : IDataObject<long>, IEquatable<Operation>
+    public sealed class Operation : IDomainObject<long>, IEquatable<Operation>
     {
         public Operation(long id)
         {

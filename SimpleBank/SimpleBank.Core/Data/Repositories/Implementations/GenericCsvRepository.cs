@@ -1,39 +1,40 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using SimpleBank.Core.Data.FileAccess;
+using SimpleBank.Core.Data.DataAccess;
 using SimpleBank.Core.Data.Repositories.Abstractions;
+using SimpleBank.Core.Models;
 using SimpleBank.Core.Models.Abstractions;
 
 namespace SimpleBank.Core.Data.Repositories.Implementations
 {
-    public abstract class GenericCsvRepository<TObject, TId> : IRepository<TObject, TId> where TObject : IDataObject<TId>
+    public abstract class GenericCsvRepository<TObject, TId> : IRepository<TObject, TId> where TObject : IDomainObject<TId>
     {
         private readonly IDataReader<string> _dataReader;
         private readonly IDataWriter<string> _dataWriter;
-        private readonly Dictionary<TId, TObject> _dataStore;
-        private readonly string _header;
+
+        private readonly Dictionary<TId, TObject> _data;
 
         protected GenericCsvRepository(IDataReader<string> dataReader, IDataWriter<string> dataWriter)
         {
-            _dataReader = dataReader;
-            _dataWriter = dataWriter;
-            _header = _dataReader.Read().First();
-            _dataStore = ReadData();
+            _dataReader = dataReader ?? throw new ArgumentNullException(nameof(dataReader));
+            _dataWriter = dataWriter ?? throw new ArgumentNullException(nameof(dataWriter));
+            _data = ReadData();
         }
 
-        #region Public
+        #region Public Methods
 
         public TObject GetById(TId id)
         {
-            _dataStore.TryGetValue(id, out var entity);
+            _data.TryGetValue(id, out var entity); ;
             return entity;
         }
 
         public TId Add(TObject entity)
         {
-            var newId = GenerateNextId(_dataStore.Keys.Max());
-            _dataStore[newId] = entity;
+            var lastId = _data.Keys.Max();
+            var newId = GenerateNewId(lastId);
+            _data[newId] = entity;
 
             SaveChanges();
             return newId;
@@ -42,10 +43,10 @@ namespace SimpleBank.Core.Data.Repositories.Implementations
         public bool Update(TObject entity)
         {
             var id = entity.Id;
-            if (!_dataStore.TryGetValue(id, out _))
+            if (!_data.TryGetValue(id, out _))
                 return false;
 
-            _dataStore[id] = entity;
+            _data[id] = entity;
 
             SaveChanges();
             return true;
@@ -53,48 +54,47 @@ namespace SimpleBank.Core.Data.Repositories.Implementations
 
         public bool Delete(TId id)
         {
-            if (!_dataStore.Remove(id))
+            if (!_data.Remove(id))
                 return false;
 
             SaveChanges();
             return true;
         }
 
-        public IEnumerable<TObject> Query(Func<TObject, bool> condition) =>
-            _dataStore.Values.Where(condition);
+        public IEnumerable<TObject> Query(Func<TObject, bool> condition)
+        {
+            return _data.Values.Where(condition);
+        }
 
-        #endregion Public
+        #endregion Public Methods
 
-        #region Protected
+        #region Protected Methods
+
+        protected abstract TId GenerateNewId(TId lastId);
 
         protected abstract TObject ToObject(string s);
 
-        /// <summary>
-        /// Exclude obj.Id
-        /// </summary>
-        /// <param name="obj">object which is converted into csv</param>
-        /// <returns></returns>
-        protected abstract string ToCsv(TObject obj);
+        protected abstract string ToCsv(TObject entity);
 
-        protected abstract TId GenerateNextId(TId lastId);
+        #endregion Protected Methods
 
-        #endregion Protected
+        #region Private Methods
 
-        #region Private
+        private void SaveChanges()
+        {
+            var objectStrings = _data.Select(pair => $"{pair.Key},{ToCsv(pair.Value)}");
+            _dataWriter.WriteData(objectStrings);
+        }
 
-        private Dictionary<TId, TObject> ReadData() =>
-           _dataReader
-               .Read()
-               .Skip(1)
-               .Select(ToObject)
-               .ToDictionary(a => a.Id);
+        private Dictionary<TId, TObject> ReadData()
+        {
+            return _dataReader
+                .ReadData()
+                .Skip(1)
+                .Select(ToObject)
+                .ToDictionary(a => a.Id);
+        }
 
-        private void SaveChanges() =>
-            _dataWriter
-                .Write(_dataStore
-                    .Select(pair => $"{pair.Key},{ToCsv(pair.Value)}")
-                    .Prepend(_header));
-
-        #endregion Private
+        #endregion Private Methods
     }
 }

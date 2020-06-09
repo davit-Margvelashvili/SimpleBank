@@ -1,4 +1,8 @@
-﻿using SimpleBank.Core.Data.FileAccess;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using SimpleBank.Core.Data.DataAccess;
+using SimpleBank.Core.Data.Repositories.Abstractions;
 using SimpleBank.Core.Models;
 
 namespace SimpleBank.Core.Data.Repositories.Implementations
@@ -10,6 +14,8 @@ namespace SimpleBank.Core.Data.Repositories.Implementations
         {
         }
 
+        protected override int GenerateNewId(int lastId) => lastId + 1;
+
         protected override Account ToObject(string s)
         {
             var data = s.Split(",");
@@ -18,8 +24,7 @@ namespace SimpleBank.Core.Data.Repositories.Implementations
             var account = new Account(int.Parse(data[idx++]))
             {
                 Iban = data[idx++],
-                Currency = data[idx++],
-                Balance = decimal.Parse(data[idx++]),
+                Balance = new Money(Enum.Parse<CurrencyCode>(data[idx++]), decimal.Parse(data[idx++])),
                 CustomerId = int.Parse(data[idx++]),
                 Name = data[idx],
             };
@@ -30,11 +35,7 @@ namespace SimpleBank.Core.Data.Repositories.Implementations
             return account;
         }
 
-        protected override string ToCsv(Account obj)
-        {
-            return $"{obj.Iban},{obj.Currency},{obj.Balance},{obj.CustomerId},{obj.Name ?? string.Empty}";
-        }
-
-        protected override int GenerateNextId(int lastId) => lastId + 1;
+        protected override string ToCsv(Account account) =>
+            $"{account.Iban},{account.Balance.Currency},{account.Balance.Amount},{account.CustomerId},{account.Name ?? string.Empty}";
     }
 }
